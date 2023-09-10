@@ -9,7 +9,7 @@
 
       <div class="home-page__input">
         <BaseInput :callback="onUpdateText" />
-        <BaseButton @click="this.$router.push({ path: `create/${text}/${count}` })" />
+        <BaseButton @click="router.push({ path: `create/${text}/${count}` })" />
         <br />
       </div>
       <div class="slider">
