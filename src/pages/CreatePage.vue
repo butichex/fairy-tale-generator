@@ -98,8 +98,6 @@ onMounted(async () => {
     });
     const summary = againCompletion.choices[0].message.content.split('.').map((s) => s.trim())
     const imagePerMessage = Math.floor(text.value.length / summary.length)
-    console.log(imagePerMessage, text.value.length, summary.length)
-    console.log(text.value, summary, 333)
     isLoading.value = false
     for (const sentence in summary.slice(3)) {
         const response = await openai.images.generate({ prompt: `${sentence} Картинку выдай в сказочном стиле`, n: 1 }).asResponse();
@@ -107,7 +105,6 @@ onMounted(async () => {
         const imageURL = body.data[0].url
         text.value.splice(index, 0, imageURL)
         index += imagePerMessage
-        console.log(text.value, index)
     }
 
 })
