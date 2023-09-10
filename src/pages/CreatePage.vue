@@ -9,12 +9,9 @@
         </div>
 
         <div class="create-page__cards">
-            <div v-if="isLoading" class="create-page__card">
-                <n-space vertical>
-                    <n-skeleton v-if="isLoading" height="10px" round />
-                    <n-skeleton :style="{ margin: '8px 0px 0px 0px' }" v-if="isLoading" height="10px" round />
-                    <n-skeleton :style="{ margin: '8px 0px 0px 0px' }" v-if="isLoading" height="10px" round />
-                </n-space>
+            <div class="tr-buttons">
+                <NButton @click="changeText('rus')">РУС</NButton>
+                <NButton @click="changeText('tat')">ТАТ</NButton>
             </div>
             <div v-if="isLoading" class="create-page__card">
                 <n-space vertical>
@@ -51,7 +48,22 @@
                     <n-skeleton :style="{ margin: '8px 0px 0px 0px' }" v-if="isLoading" height="10px" round />
                 </n-space>
             </div>
-            <div v-for="item in text" class="create-page__card">
+            <div v-if="isLoading" class="create-page__card">
+                <n-space vertical>
+                    <n-skeleton v-if="isLoading" height="10px" round />
+                    <n-skeleton :style="{ margin: '8px 0px 0px 0px' }" v-if="isLoading" height="10px" round />
+                    <n-skeleton :style="{ margin: '8px 0px 0px 0px' }" v-if="isLoading" height="10px" round />
+                </n-space>
+            </div>
+            <div v-if="currentText === 'rus'" v-for="item in rusText" class="create-page__card">
+                <div v-if="item.startsWith('http')">
+                    <img class="create-page__img" :src="item" alt="">
+                </div>
+                <div v-else>
+                    {{ item }}
+                </div>
+            </div>
+            <div v-if="currentText === 'tat'" v-for="item in tatText" class="create-page__card">
                 <div v-if="item.startsWith('http')">
                     <img class="create-page__img" :src="item" alt="">
                 </div>
@@ -68,7 +80,7 @@
 import BaseInput from "../components/global/BaseInput.vue"
 import BaseButton from "../components/global/BaseButton.vue"
 import BaseCard from "../components/global/BaseCard.vue"
-import { NCard, NSkeleton, NSpace, NIcon } from "naive-ui"
+import { NCard, NSkeleton, NSpace, NIcon, NButton } from "naive-ui"
 
 import { BsArrowLeftCircleFill } from "@kalimahapps/vue-icons";
 import router from "../router/index"
@@ -79,31 +91,51 @@ import { onMounted, ref } from "vue";
 
 
 const isLoading = ref(false);
-const text = ref("")
+const rusText = ref("")
+const tatText = ref("")
+const currentText = ref("rus")
 
 
+const changeText = (lan) => {
+    console.log(lan)
+    if (lan === "rus") {
+        currentText.value = 'rus'
+    } else {
+        currentText.value = 'tat'
+    }
+
+}
+
+/* `в пределах ${router.currentRoute.value.params.count}.`
+ */
 
 
 onMounted(async () => {
     isLoading.value = true;
     let index = 0
     const completion = await openai.chat.completions.create({
-        messages: [{ role: 'user', content: router.currentRoute.value.params.text + `в пределах ${router.currentRoute.value.params.count}.` }],
-        model: 'gpt-3.5-turbo-16k',
+        messages: [{ role: 'user', content: router.currentRoute.value.params.text + `из 10 предложений.` }],
+        model: 'gpt-3.5-turbo',
     });
-    text.value = completion.choices[0].message.content.split('.').map((s) => s.trim())
+    rusText.value = completion.choices[0].message.content.split('.').map((s) => s.trim())
+    isLoading.value = false
+    const secondCompletion = await openai.chat.completions.create({
+        messages: [{ role: 'user', content: `Переведи каждое предложение на татарский язык: ` + rusText.value }],
+        model: 'gpt-3.5-turbo',
+    });
+    tatText.value = secondCompletion.choices[0].message.content.split('.').map((s) => s.trim())
     const againCompletion = await openai.chat.completions.create({
-        messages: [{ role: 'user', content: "Напиши очень короткий пересказ этого текста: " + text.value }],
-        model: 'gpt-3.5-turbo-16k',
+        messages: [{ role: 'user', content: "Напиши короткий пересказ этого текста из 4 предложений: " + rusText.value }],
+        model: 'gpt-3.5-turbo',
     });
     const summary = againCompletion.choices[0].message.content.split('.').map((s) => s.trim())
-    const imagePerMessage = Math.floor(text.value.length / summary.length)
-    isLoading.value = false
+    const imagePerMessage = Math.floor(rusText.value.length / summary.length)
     for (const sentence in summary.slice(3)) {
         const response = await openai.images.generate({ prompt: `${sentence} Картинку выдай в сказочном стиле`, n: 1 }).asResponse();
         const body = await response.json()
         const imageURL = body.data[0].url
-        text.value.splice(index, 0, imageURL)
+        rusText.value.splice(index, 0, imageURL)
+        tatText.value.splice(index, 0, imageURL)
         index += imagePerMessage
     }
 
@@ -135,6 +167,15 @@ onMounted(async () => {
         width: min(100%, 350px);
     }
 }
+
+
+.tr-buttons {
+    display: flex;
+    gap: 12px
+}
+
+
+
 
 
 .n-skeleton {
